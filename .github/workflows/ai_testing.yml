@@ -1,0 +1,58 @@
+name: Python CI – RAGAS + DeepEval
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  build-and-test:
+    runs-on: windows-latest
+    env:
+      FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+
+    strategy:
+      matrix:
+        python-version: [3.12]
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: ${{ matrix.python-version }}
+
+      - name: Upgrade pip, setuptools, wheel
+        run: |
+          python -m pip install --upgrade pip setuptools wheel
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Prepare reports folder
+        run: mkdir reports
+
+      - name: Run DeepEval tests
+        run: |
+          pytest deepeval_tests/ --html=reports/deepeval_report.html --self-contained-html --disable-warnings
+        continue-on-error: true
+
+      - name: Run RAGAS evaluations
+        run: |
+          pytest Ragas_evaluations/ --html=reports/ragas_report.html --self-contained-html --disable-warnings
+        continue-on-error: true
+
+      - name: Upload DeepEval report
+        uses: actions/upload-artifact@v4
+        with:
+          name: deepeval-report
+          path: reports/deepeval_report.html
+
+      - name: Upload RAGAS report
+        uses: actions/upload-artifact@v4
+        with:
+          name: ragas-report
+          path: reports/ragas_report.html

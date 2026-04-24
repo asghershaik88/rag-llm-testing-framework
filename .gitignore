@@ -1,0 +1,23 @@
+# environments
+.venv312/
+.venv/
+.env/
+
+# IDE
+.idea/
+
+# deepeval
+.deepeval/
+
+# cache
+__pycache__/
+*.pyc
+
+# reports
+reports/
+
+# chatbot app (entire folder)
+chatbot_app/
+
+# pytest config
+conftest.py

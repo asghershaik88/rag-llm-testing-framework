@@ -1,0 +1,17 @@
+[
+  {
+    "question": "I had some unused leave from 2022, I think around 8 days. Can I still carry it forward and how much is actually allowed?",
+    "reference_context": "Employees are entitled to 20 days of paid leave annually in 2022. Unused leave can be carried forward up to 10 days. In 2024, employees are entitled to 25 days of paid leave annually. Unused leave can be carried forward up to 15 days.",
+    "reference_answer": "In 2022, unused leave can be carried forward up to a maximum of 10 days. Since the employee has 8 unused days, all 8 days can be carried forward."
+  },
+  {
+    "question": "I already used my 10 sick days this year but I had a medical emergency and took 3 more days. My manager said it's fine. Is this actually allowed in policy?",
+    "reference_context": "Sick leave is limited to 10 days per year in 2024 updated policy. Managers may approve additional leave beyond the standard policy in exceptional cases.",
+    "reference_answer": "The standard sick leave limit is 10 days per year, so the additional 3 days exceed the limit. However, managers can approve extra leave in exceptional cases, so it is allowed under managerial discretion."
+  },
+  {
+    "question": "How does leave actually work here? I heard people get different numbers depending on their role or location.",
+    "reference_context": "Employees are entitled to 25 days of paid leave annually. Sick leave is limited to 10 days per year. Leave policies vary across regions and roles. Managers may approve additional leave beyond the standard policy in exceptional cases.",
+    "reference_answer": "Employees generally receive 25 days of paid leave per year plus 10 sick leave days. However, leave is not strictly fixed and may vary based on region, role, and managerial approval."
+  }
+]
