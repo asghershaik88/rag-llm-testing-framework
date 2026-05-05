@@ -1,23 +1,14 @@
-# environments
+﻿# environments
 .venv312/
 .venv/
-.env/
-
-# IDE
-.idea/
-
-# deepeval
+.env
 .deepeval/
-
 # cache
 __pycache__/
 *.pyc
-
 # reports
 reports/
-
-# chatbot app (entire folder)
-chatbot_app/
-
+# logs
+Monitoring/logs.jsonl
 # pytest config
 conftest.py
