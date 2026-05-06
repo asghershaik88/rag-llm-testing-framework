@@ -1,20 +1,13 @@
-import os
-import sys
 from pathlib import Path
-
-# Add project root to sys.path for absolute imports
-sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
 from langchain_community.document_loaders import TextLoader
 from langchain_text_splitters import CharacterTextSplitter
 from langchain_community.vectorstores import FAISS
 from langchain_openai import OpenAIEmbeddings, ChatOpenAI
 from langchain_core.prompts import ChatPromptTemplate
-
 from langsmith import traceable
-from Monitoring.logger import log_interaction
-from utils.Reranker import rerank_documents
 
+from Monitoring.logger import log_interaction
 from config.settings import settings
 
 
@@ -22,13 +15,12 @@ from config.settings import settings
 # CREATE CHATBOT COMPONENTS
 # -----------------------------
 def create_chatbot():
-
-    BASE_DIR = Path(__file__).resolve().parent.parent
-    file_path = BASE_DIR / "data" / "hrdocs"
+    base_dir = Path(__file__).resolve().parent.parent
+    data_path = base_dir / "data" / "hrdocs"
 
     documents = []
 
-    for file in file_path.glob("*.txt"):
+    for file in data_path.glob("*.txt"):
         loader = TextLoader(str(file), encoding="utf-8")
         documents.extend(loader.load())
 
@@ -36,7 +28,7 @@ def create_chatbot():
     splitter = CharacterTextSplitter(chunk_size=250, chunk_overlap=50)
     docs = splitter.split_documents(documents)
 
-    # Embeddings (using settings)
+    # Embeddings
     embeddings = OpenAIEmbeddings(
         api_key=settings.OPENAI_API_KEY
     )
@@ -77,13 +69,14 @@ Question:
 @traceable
 def ask_rag(question, retriever, llm, prompt, history=None):
 
-    # Retrieve
+    # Retrieve documents
     docs = retriever.invoke(question)
 
-    # Rerank
-    docs = rerank_documents(question, docs, top_k=3)
+    # ✅ Convert Documents → List[str] (CRITICAL FIX)
+    context = [doc.page_content for doc in docs]
 
-    context = "\n".join([doc.page_content for doc in docs])
+    # Combine for LLM prompt
+    context_text = "\n".join(context)
 
     # History (optional)
     history_text = ""
@@ -94,7 +87,7 @@ def ask_rag(question, retriever, llm, prompt, history=None):
 
     # Final prompt
     final_prompt = prompt.format(
-        context=context + "\n\n" + history_text,
+        context=context_text + "\n\n" + history_text,
         question=question
     )
 
@@ -105,10 +98,11 @@ def ask_rag(question, retriever, llm, prompt, history=None):
     log_interaction(
         query=question,
         response=response.content,
-        context=[context]
+        context=context  # ✅ correct format
     )
 
-    return response.content, docs
+    # ✅ IMPORTANT: return List[str] for RAGAS
+    return response.content, context
 
 
 # -----------------------------
@@ -118,18 +112,19 @@ if __name__ == "__main__":
 
     retriever, llm, prompt = create_chatbot()
 
-    print("\nRAG Chatbot with Reranker is running...\n")
+    print("\nRAG Chatbot is running...\n")
 
     while True:
-        question = input("Ask something: ")
+        user_input = input("Ask something: ").strip()
 
-        if question.lower() == "exit":
+        if user_input.lower() == "exit":
+            print("Exiting chatbot...")
             break
 
-        answer, docs = ask_rag(question, retriever, llm, prompt)
+        answer, contexts = ask_rag(user_input, retriever, llm, prompt)
 
         print("\nAnswer:\n", answer)
 
         print("\n--- Retrieved Context ---")
-        for d in docs:
-            print("-", d.page_content[:120])
+        for c in contexts:
+            print("-", c[:120])

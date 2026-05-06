@@ -6,7 +6,7 @@ from pathlib import Path
 
 LOG_FILE = "Monitoring/logs.jsonl"
 
-path = Path(__file__).parent.parent /"Monitoring/logs.jsonl"
+path = Path(__file__).parent.parent/"Monitoring/logs.jsonl"
 def ensure_log_file():
     path.parent.mkdir(parents=True, exist_ok=True)
     if not path.exists():
