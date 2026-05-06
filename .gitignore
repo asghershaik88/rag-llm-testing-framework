@@ -13,3 +13,4 @@ Monitoring/logs.jsonl
 # pytest config
 conftest.py
 /config/
+
