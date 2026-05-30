@@ -1,10 +1,8 @@
 from fastapi import FastAPI
 from pydantic import BaseModel
-import os
-import sys
 from pathlib import Path
+import sys
 
-# Add project root to sys.path for absolute imports
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
 from langchain_community.document_loaders import TextLoader
@@ -12,29 +10,19 @@ from langchain_text_splitters import CharacterTextSplitter
 from langchain_community.vectorstores import FAISS
 from langchain_openai import OpenAIEmbeddings, ChatOpenAI
 from langchain_core.prompts import ChatPromptTemplate
-from openai import OpenAI
-from dotenv import load_dotenv
-
+from fastapi.responses import JSONResponse
 from config.settings import settings
-
-load_dotenv()
-
-# your existing reranker + logger functions
-# from your_project import rerank_documents, log_interaction
-client=OpenAI(api_key=settings.OPENAI_API_KEY)
 
 app = FastAPI()
 
 # -----------------------------
-# LOAD CHATBOT (RUNS ONCE)
+# BUILD RAG ON STARTUP
 # -----------------------------
 def create_chatbot():
-
     BASE_DIR = Path(__file__).resolve().parent.parent
     file_path = BASE_DIR / "data" / "hrdocs"
 
     documents = []
-
     for file in file_path.iterdir():
         if file.is_file() and file.suffix == ".txt":
             loader = TextLoader(str(file), encoding="utf-8")
@@ -48,10 +36,8 @@ def create_chatbot():
 
     retriever = vector_db.as_retriever(search_kwargs={"k": 3})
 
-    llm = ChatOpenAI(model="gpt-4o-mini", temperature=0, api_key=settings.OPENAI_API_KEY)
-
     prompt = ChatPromptTemplate.from_template("""
-You are a secure AI assistant.
+You are a secure HR assistant.
 
 Context:
 {context}
@@ -59,32 +45,36 @@ Context:
 Question:
 {question}
 
-Answer clearly and only based on context.
+Answer clearly using only the context.
 """)
 
-    return retriever, llm, prompt
+    return retriever, prompt
 
 
-retriever, llm, prompt = create_chatbot()
+retriever, prompt = create_chatbot()
+
 
 # -----------------------------
 # REQUEST MODEL
 # -----------------------------
 class ChatRequest(BaseModel):
     question: str
+    model: str = "gpt-4o-mini"
 
 
 # -----------------------------
-# RAG PIPELINE
+# SAFE LLM CALL
 # -----------------------------
-def ask_rag(question: str):
+def ask_rag(question: str, model: str):
 
     docs = retriever.invoke(question)
+    context = [d.page_content for d in docs]
 
-    # If you have reranker, keep it
-    # docs = rerank_documents(question, docs, top_k=3)
-
-    context = [doc.page_content for doc in docs]
+    llm = ChatOpenAI(
+        model=model,
+        temperature=0,
+        api_key=settings.OPENAI_API_KEY
+    )
 
     final_prompt = prompt.format(
         context="\n".join(context),
@@ -93,11 +83,11 @@ def ask_rag(question: str):
 
     response = llm.invoke(final_prompt)
 
-    # optional logging
-    # log_interaction(question, response.content, context)
+    answer = response.content if response and response.content else "No answer generated"
 
+    # IMPORTANT: normalize output
     return {
-        "answer": response.content,
+        "answer": str(answer).strip(),
         "context": context
     }
 
@@ -107,13 +97,17 @@ def ask_rag(question: str):
 # -----------------------------
 @app.post("/chat")
 def chat(request: ChatRequest):
-    return ask_rag(request.question)
+    result = ask_rag(request.question, request.model)
+
+    # HARD GUARANTEE CLEAN OUTPUT
+    return JSONResponse(
+        content={
+            "answer": str(result["answer"]),
+            "context": result["context"]
+        }
+    )
 
 
-# -----------------------------
-# HEALTH CHECK
-# -----------------------------
 @app.get("/")
 def home():
-    return {"status": "Chatbot API is running"}
-
+    return {"status": "Chatbot API running"}

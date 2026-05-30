@@ -1,0 +1,37 @@
+description: RAG evaluation with multi-model comparison
+
+providers:
+  - id: http:gpt4o-mini
+    config:
+      url: http://127.0.0.1:8000/chat
+      method: POST
+      headers:
+        Content-Type: application/json
+      body:
+        question: "{{prompt}}"
+        model: "gpt-4o-mini"
+
+  - id: http:gpt4o
+    config:
+      url: http://127.0.0.1:8000/chat
+      method: POST
+      headers:
+        Content-Type: application/json
+      body:
+        question: "{{prompt}}"
+        model: "gpt-4o"
+
+prompts:
+  - id: prompt_v1
+    raw: |
+      Answer using company policy:
+      {{question}}
+
+  - id: prompt_v2
+    raw: |
+      You are an HR assistant. Answer clearly using only policy context:
+      {{question}}
+
+tests:
+  - file://data/promptfoo_tests.json
+
